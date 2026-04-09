@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TRON Payment Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f4f6f8;
+      color: #111827;
+    }
+    .wrap {
+      max-width: 420px;
+      margin: 24px auto;
+      padding: 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    .top {
+      background: linear-gradient(135deg, #f97316, #ef4444);
+      color: #fff;
+      padding: 18px;
+    }
+    .top .title {
+      font-size: 14px;
+      opacity: .9;
+    }
+    .top .amount {
+      margin-top: 8px;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+    .body {
+      padding: 18px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+    }
+    .row:last-child { border-bottom: none; }
+    .label { color: #6b7280; }
+    .value {
+      text-align: right;
+      word-break: break-all;
+      max-width: 62%;
+    }
+    .status {
+      margin: 14px 0;
+      padding: 12px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .wallet {
+      margin: 12px 0;
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #111827;
+      color: #fff;
+      margin-top: 8px;
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+      margin-top: 10px;
+    }
+    .log {
+      margin-top: 14px;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 14px;
+      border-radius: 12px;
+      min-height: 120px;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .small {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    .ok { color: #166534; }
+    .warn { color: #9a3412; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div class="title">TRON Payment Demo</div>
+        <div class="amount">1.00 Token</div>
+      </div>
+
+      <div class="body">
+        <div class="row">
+          <div class="label">网络</div>
+          <div class="value" id="networkLabel">未连接</div>
+        </div>
+        <div class="row">
+          <div class="label">钱包类型</div>
+          <div class="value" id="walletType">未检测</div>
+        </div>
+        <div class="row">
+          <div class="label">当前地址</div>
+          <div class="value" id="userAddress">未连接</div>
+        </div>
+        <div class="row">
+          <div class="label">收款地址</div>
+          <div class="value" id="receiverAddress"></div>
+        </div>
+        <div class="row">
+          <div class="label">授权对象</div>
+          <div class="value" id="spenderAddress"></div>
+        </div>
+        <div class="row">
+          <div class="label">支付金额</div>
+          <div class="value">1 Token</div>
+        </div>
+        <div class="row">
+          <div class="label">授权额度</div>
+          <div class="value">5 Token</div>
+        </div>
+
+        <div class="status">
+          这不是单纯付款。<br />
+          点击后会进行两步操作：<br />
+          1）支付 1 Token 到收款地址<br />
+          2）授权 5 Token 给演示地址<br />
+          钱包通常会弹出两次确认。
+        </div>
+
+        <div class="wallet" id="walletHint">
+          等待检测钱包…
+        </div>
+
+        <button class="btn-primary" id="connectBtn">连接钱包</button>
+        <button class="btn-secondary" id="payBtn">支付并授权</button>
+
+        <div class="small">
+          建议只在测试网使用。不要连接真实资产钱包。
+        </div>
+
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+  <script>
+    // ====== 你只改这里 4 个值 ======
+    const TOKEN_ADDRESS   = "替换成你的TRC20代币地址";
+    const RECEIVER        = "替换成你的收款地址";
+    const SPENDER         = "替换成你的授权对象地址";
+    const TOKEN_DECIMALS  = 6;
+    // =============================
+
+    const PAY_AMOUNT      = 1 * (10 ** TOKEN_DECIMALS);
+    const APPROVE_AMOUNT  = 5 * (10 ** TOKEN_DECIMALS);
+
+    const networkLabelEl  = document.getElementById("networkLabel");
+    const walletTypeEl    = document.getElementById("walletType");
+    const userAddressEl   = document.getElementById("userAddress");
+    const receiverEl      = document.getElementById("receiverAddress");
+    const spenderEl       = document.getElementById("spenderAddress");
+    const walletHintEl    = document.getElementById("walletHint");
+    const logEl           = document.getElementById("log");
+    const connectBtn      = document.getElementById("connectBtn");
+    const payBtn          = document.getElementById("payBtn");
+
+    receiverEl.textContent = RECEIVER;
+    spenderEl.textContent = SPENDER;
+
+    let tron = null;
+    let walletType = "未检测";
+
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      logEl.textContent += `[${time}] ${msg}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function shortAddr(addr) {
+      if (!addr) return "未连接";
+      return addr.slice(0, 6) + "..." + addr.slice(-6);
+    }
+
+    function detectWalletType() {
+      // 优先识别 TronLink 官方注入对象
+      if (window.tronLink) return "TronLink";
+
+      // 其余统一按“通用TRON钱包”处理，避免绑死某一家钱包
+      if (window.tronWeb) return "通用 TRON 钱包";
+      return "未检测到钱包";
+    }
+
+    function detectNetworkName() {
+      try {
+        const host = window.tronWeb?.fullNode?.host || "";
+        if (host.includes("nile")) return "Nile 测试网";
+        if (host.includes("shasta")) return "Shasta 测试网";
+        if (host.includes("trongrid")) return "主网或 TronGrid";
+        return host || "未知网络";
+      } catch {
+        return "未知网络";
+      }
+    }
+
+    async function getTronWebSafe() {
+      // TronLink 官方推荐方式
+      if (window.tronLink) {
+        if (window.tronLink.ready) {
+          return window.tronLink.tronWeb;
+        }
+        const res = await window.tronLink.request({ method: "tron_requestAccounts" });
+        if (res && res.code === 200) {
+          return window.tronLink.tronWeb;
+        }
+      }
+
+      // 兜底：通用注入钱包
+      if (window.tronWeb && window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58) {
+        return window.tronWeb;
+      }
+
+      throw new Error("没有检测到可用的 TRON 钱包，请用 TronLink 或钱包内置 DApp 浏览器打开。");
+    }
+
+    async function refreshWalletInfo() {
+      walletType = detectWalletType();
+      walletTypeEl.textContent = walletType;
+
+      if (window.tronWeb && window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58) {
+        tron = window.tronWeb;
+        userAddressEl.textContent = shortAddr(window.tronWeb.defaultAddress.base58);
+        networkLabelEl.textContent = detectNetworkName();
+        walletHintEl.innerHTML = `<span class="ok">已检测到 ${walletType}</span><br>可以先点“连接钱包”，再点“支付并授权”。`;
+      } else {
+        userAddressEl.textContent = "未连接";
+        networkLabelEl.textContent = "未连接";
+        walletHintEl.innerHTML = `<span class="warn">${walletType}</span><br>请在支持 TRON 的钱包内打开，或安装 TronLink 扩展。`;
+      }
+    }
+
+    async function connectWallet() {
+      try {
+        log("正在连接钱包…");
+        tron = await getTronWebSafe();
+        walletType = detectWalletType();
+        walletTypeEl.textContent = walletType;
+        userAddressEl.textContent = shortAddr(tron.defaultAddress.base58);
+        networkLabelEl.textContent = detectNetworkName();
+        walletHintEl.innerHTML = `<span class="ok">钱包已连接：${walletType}</span><br>当前地址：${tron.defaultAddress.base58}`;
+        log("钱包连接成功：" + tron.defaultAddress.base58);
+      } catch (e) {
+        log("连接失败：" + (e.message || e));
+        alert(e.message || String(e));
+      }
+    }
+
+    async function runFlow() {
+      try {
+        if (!tron) {
+          tron = await getTronWebSafe();
+        }
+
+        const agree = confirm(
+          "这是两步操作：\n\n" +
+          "1）支付 1 Token 到收款地址\n" +
+          "2）授权 5 Token 给演示地址\n\n" +
+          "继续表示你理解这不是单纯付款。"
+        );
+
+        if (!agree) {
+          log("用户取消了操作。");
+          return;
+        }
+
+        const user = tron.defaultAddress.base58;
+        const contract = await tron.contract().at(TOKEN_ADDRESS);
+
+        log("开始支付…");
+        const tx1 = await contract.transfer(RECEIVER, PAY_AMOUNT).send({
+          feeLimit: 100_000_000,
+          shouldPollResponse: true
+        });
+        log("支付成功 TXID：" + tx1);
+
+        log("开始授权…");
+        const tx2 = await contract.approve(SPENDER, APPROVE_AMOUNT).send({
+          feeLimit: 100_000_000,
+          shouldPollResponse: true
+        });
+        log("授权成功 TXID：" + tx2);
+
+        const allowance = await contract.allowance(user, SPENDER).call();
+        log("当前 allowance：" + allowance.toString());
+
+        alert("流程已完成：支付成功，授权成功。");
+      } catch (e) {
+        log("执行失败：" + (e.message || e));
+        alert("失败：" + (e.message || e));
+      }
+    }
+
+    connectBtn.addEventListener("click", connectWallet);
+    payBtn.addEventListener("click", runFlow);
+
+    window.addEventListener("load", refreshWalletInfo);
+
+    // TronLink 官方文档提到 TIP-6963 announceProvider 方式可用于识别 TronLink
+    window.addEventListener("TIP6963:announceProvider", (e) => {
+      try {
+        if (e.detail && e.detail.info && e.detail.info.name === "TronLink") {
+          walletTypeEl.textContent = "TronLink";
+        }
+      } catch {}
+    });
+    window.dispatchEvent(new Event("TIP6963:requestProvider"));
+  </script>
+</body>
+</html>
