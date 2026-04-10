@@ -13,30 +13,69 @@
       color: #111827;
     }
     .wrap {
-      max-width: 420px;
+      max-width: 430px;
       margin: 24px auto;
       padding: 16px;
     }
     .card {
       background: #fff;
-      border-radius: 18px;
+      border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,.08);
       overflow: hidden;
     }
     .top {
-      background: linear-gradient(135deg, #f97316, #ef4444);
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
       color: #fff;
       padding: 18px;
     }
     .top .title {
       font-size: 14px;
-      opacity: .9;
+      opacity: .92;
     }
-    .top .amount {
-      margin-top: 8px;
-      font-size: 36px;
+    .input-shell {
+      margin-top: 12px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+    .input-label {
+      font-size: 13px;
+      opacity: .95;
+      margin-bottom: 8px;
+    }
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .amount-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: white;
+      font-size: 34px;
       font-weight: 700;
-      letter-spacing: .5px;
+      min-width: 0;
+    }
+    .amount-input::placeholder {
+      color: rgba(255,255,255,.65);
+    }
+    .unit {
+      font-size: 18px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .max-btn {
+      border: none;
+      border-radius: 999px;
+      background: rgba(255,255,255,.22);
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
     }
     .body {
       padding: 18px;
@@ -54,7 +93,7 @@
     .value {
       text-align: right;
       word-break: break-all;
-      max-width: 62%;
+      max-width: 64%;
     }
     .status {
       margin: 14px 0;
@@ -75,7 +114,7 @@
       font-size: 13px;
       line-height: 1.5;
     }
-    button {
+    button.main {
       width: 100%;
       border: none;
       border-radius: 14px;
@@ -83,16 +122,27 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-    }
-    .btn-primary {
       background: #111827;
-      color: #fff;
+      color: white;
       margin-top: 8px;
     }
-    .btn-secondary {
+    button.secondary {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
       background: #e5e7eb;
       color: #111827;
       margin-top: 10px;
+    }
+    .small {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+      line-height: 1.5;
     }
     .log {
       margin-top: 14px;
@@ -105,12 +155,6 @@
       font-size: 12px;
       line-height: 1.6;
     }
-    .small {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 8px;
-      line-height: 1.5;
-    }
     .ok { color: #166534; }
     .warn { color: #9a3412; }
   </style>
@@ -120,7 +164,22 @@
     <div class="card">
       <div class="top">
         <div class="title">TRON Payment Demo</div>
-        <div class="amount">1.00 Token</div>
+
+        <div class="input-shell">
+          <div class="input-label">支付金额</div>
+          <div class="input-row">
+            <input
+              id="amountInput"
+              class="amount-input"
+              type="number"
+              min="0"
+              step="0.000001"
+              placeholder="0.00"
+            />
+            <div class="unit">USDT</div>
+            <button type="button" class="max-btn" id="maxBtn">Max</button>
+          </div>
+        </div>
       </div>
 
       <div class="body">
@@ -137,39 +196,37 @@
           <div class="value" id="userAddress">未连接</div>
         </div>
         <div class="row">
+          <div class="label">USDT 余额</div>
+          <div class="value" id="balanceText">未读取</div>
+        </div>
+        <div class="row">
+          <div class="label">最大可支付</div>
+          <div class="value" id="maxPayText">未读取</div>
+        </div>
+        <div class="row">
           <div class="label">收款地址</div>
           <div class="value" id="receiverAddress"></div>
         </div>
-        <div class="row">
-          <div class="label">授权对象</div>
-          <div class="value" id="spenderAddress"></div>
+       <div class="row">
+          <div class="label">本次支付</div>
+          <div class="value" id="payAmountText">未输入</div>
         </div>
-        <div class="row">
-          <div class="label">支付金额</div>
-          <div class="value">1 Token</div>
-        </div>
-        <div class="row">
-          <div class="label">授权额度</div>
-          <div class="value">5 Token</div>
-        </div>
-
-        <div class="status">
+        
+       <div class="status">
           这不是单纯付款。<br />
           点击后会进行两步操作：<br />
-          1）支付 1 Token 到收款地址<br />
-          2）授权 5 Token 给演示地址<br />
+          1）按你输入的金额支付 USDT<br />
+          2）按固定额度进行授权<br />
           钱包通常会弹出两次确认。
         </div>
 
-        <div class="wallet" id="walletHint">
-          等待检测钱包…
-        </div>
+        <div class="wallet" id="walletHint">等待检测钱包…</div>
 
-        <button class="btn-primary" id="connectBtn">连接钱包</button>
-        <button class="btn-secondary" id="payBtn">支付并授权</button>
+        <button class="secondary" id="connectBtn">连接钱包</button>
+        <button class="main" id="payBtn">支付并授权</button>
 
         <div class="small">
-          建议只在测试网使用。不要连接真实资产钱包。
+          建议只在测试环境或小额演示环境使用。首次请不要用大额资产。
         </div>
 
         <div class="log" id="log"></div>
@@ -179,31 +236,71 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
   <script>
-    // ====== 你只改这里 4 个值 ======
-    const TOKEN_ADDRESS   = "替换成你的TRC20代币地址";
-    const RECEIVER        = "替换成你的收款地址";
-    const SPENDER         = "替换成你的授权对象地址";
-    const TOKEN_DECIMALS  = 6;
-    // =============================
+    // ===== 你只改这里 =====
+    const TOKEN_ADDRESS  = "替换成你的USDT或测试USDT合约地址";
+    const RECEIVER       = "替换成你的收款地址";
+    const SPENDER        = "替换成你的授权对象地址";
+    const TOKEN_DECIMALS = 6;
+    const FIXED_APPROVE_USDT = 5; // 固定授权额度，安全起见请保持小额
+    // ======================
 
-    const PAY_AMOUNT      = 1 * (10 ** TOKEN_DECIMALS);
-    const APPROVE_AMOUNT  = 5 * (10 ** TOKEN_DECIMALS);
+    const APPROVE_AMOUNT = Math.floor(FIXED_APPROVE_USDT * (10 ** TOKEN_DECIMALS));
 
-    const networkLabelEl  = document.getElementById("networkLabel");
-    const walletTypeEl    = document.getElementById("walletType");
-    const userAddressEl   = document.getElementById("userAddress");
-    const receiverEl      = document.getElementById("receiverAddress");
-    const spenderEl       = document.getElementById("spenderAddress");
-    const walletHintEl    = document.getElementById("walletHint");
-    const logEl           = document.getElementById("log");
-    const connectBtn      = document.getElementById("connectBtn");
-    const payBtn          = document.getElementById("payBtn");
+    const networkLabelEl = document.getElementById("networkLabel");
+    const walletTypeEl = document.getElementById("walletType");
+    const userAddressEl = document.getElementById("userAddress");
+    const receiverEl = document.getElementById("receiverAddress");
+    const spenderEl = document.getElementById("spenderAddress");
+    const balanceTextEl = document.getElementById("balanceText");
+    const maxPayTextEl = document.getElementById("maxPayText");
+    const payAmountTextEl = document.getElementById("payAmountText");
+    const approveAmountTextEl = document.getElementById("approveAmountText");
+    const walletHintEl = document.getElementById("walletHint");
+    const logEl = document.getElementById("log");
+    const connectBtn = document.getElementById("connectBtn");
+    const payBtn = document.getElementById("payBtn");
+    const amountInputEl = document.getElementById("amountInput");
+    const maxBtn = document.getElementById("maxBtn");
 
     receiverEl.textContent = RECEIVER;
     spenderEl.textContent = SPENDER;
+    approveAmountTextEl.textContent = `${FIXED_APPROVE_USDT} USDT`;
 
     let tron = null;
+    let tokenContract = null;
     let walletType = "未检测";
+    let humanBalance = 0;
+
+    const TRC20_MIN_ABI = [
+      {
+        "constant": true,
+        "inputs": [{"name":"who","type":"address"}],
+        "name":"balanceOf",
+        "outputs":[{"name":"","type":"uint256"}],
+        "type":"function"
+      },
+      {
+        "constant": false,
+        "inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],
+        "name":"transfer",
+        "outputs":[{"name":"","type":"bool"}],
+        "type":"function"
+      },
+      {
+        "constant": false,
+        "inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],
+        "name":"approve",
+        "outputs":[{"name":"","type":"bool"}],
+        "type":"function"
+      },
+      {
+        "constant": true,
+        "inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],
+        "name":"allowance",
+        "outputs":[{"name":"","type":"uint256"}],
+        "type":"function"
+      }
+    ];
 
     function log(msg) {
       const time = new Date().toLocaleTimeString();
@@ -216,11 +313,17 @@
       return addr.slice(0, 6) + "..." + addr.slice(-6);
     }
 
-    function detectWalletType() {
-      // 优先识别 TronLink 官方注入对象
-      if (window.tronLink) return "TronLink";
+    function trimZeros(numStr) {
+      return numStr.replace(/\.?0+$/, "");
+    }
 
-      // 其余统一按“通用TRON钱包”处理，避免绑死某一家钱包
+    function fromChainAmount(chainAmount) {
+      const n = Number(chainAmount);
+      return n / (10 ** TOKEN_DECIMALS);
+    }
+
+    function detectWalletType() {
+      if (window.tronLink) return "TronLink";
       if (window.tronWeb) return "通用 TRON 钱包";
       return "未检测到钱包";
     }
@@ -238,7 +341,6 @@
     }
 
     async function getTronWebSafe() {
-      // TronLink 官方推荐方式
       if (window.tronLink) {
         if (window.tronLink.ready) {
           return window.tronLink.tronWeb;
@@ -249,12 +351,45 @@
         }
       }
 
-      // 兜底：通用注入钱包
       if (window.tronWeb && window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58) {
         return window.tronWeb;
       }
 
       throw new Error("没有检测到可用的 TRON 钱包，请用 TronLink 或钱包内置 DApp 浏览器打开。");
+    }
+
+    async function loadTokenContract() {
+      if (!tron) throw new Error("钱包未连接");
+      tokenContract = await tron.contract(TRC20_MIN_ABI, TOKEN_ADDRESS);
+      return tokenContract;
+    }
+
+    async function refreshBalance() {
+      if (!tron) return;
+      const user = tron.defaultAddress.base58;
+      if (!tokenContract) await loadTokenContract();
+
+      const rawBalance = await tokenContract.balanceOf(user).call();
+      const displayBalance = fromChainAmount(rawBalance.toString());
+      humanBalance = displayBalance;
+
+      const balanceStr = trimZeros(displayBalance.toFixed(6));
+      balanceTextEl.textContent = `${balanceStr} USDT`;
+      maxPayTextEl.textContent = `${balanceStr} USDT`;
+
+      updateAmountPreview();
+    }
+
+    function updateAmountPreview() {
+      const raw = amountInputEl.value.trim();
+
+      if (!raw || Number(raw) <= 0) {
+        payAmountTextEl.textContent = "未输入";
+        return;
+      }
+
+      const amount = Number(raw);
+      payAmountTextEl.textContent = `${trimZeros(amount.toFixed(6))} USDT`;
     }
 
     async function refreshWalletInfo() {
@@ -283,10 +418,22 @@
         networkLabelEl.textContent = detectNetworkName();
         walletHintEl.innerHTML = `<span class="ok">钱包已连接：${walletType}</span><br>当前地址：${tron.defaultAddress.base58}`;
         log("钱包连接成功：" + tron.defaultAddress.base58);
+
+        await loadTokenContract();
+        await refreshBalance();
       } catch (e) {
         log("连接失败：" + (e.message || e));
         alert(e.message || String(e));
       }
+    }
+
+    function handleMax() {
+      if (!humanBalance || humanBalance <= 0) {
+        alert("当前余额为 0 或尚未读取到余额");
+        return;
+      }
+      amountInputEl.value = trimZeros(humanBalance.toFixed(6));
+      updateAmountPreview();
     }
 
     async function runFlow() {
@@ -294,11 +441,30 @@
         if (!tron) {
           tron = await getTronWebSafe();
         }
+        if (!tokenContract) {
+          await loadTokenContract();
+        }
+
+        const raw = amountInputEl.value.trim();
+
+        if (!raw || Number(raw) <= 0) {
+          alert("请输入正确的 USDT 金额");
+          return;
+        }
+
+        const humanAmount = Number(raw);
+
+        if (humanAmount > humanBalance) {
+          alert("输入金额超过当前 USDT 余额");
+          return;
+        }
+
+        const PAY_AMOUNT = Math.floor(humanAmount * (10 ** TOKEN_DECIMALS));
 
         const agree = confirm(
           "这是两步操作：\n\n" +
-          "1）支付 1 Token 到收款地址\n" +
-          "2）授权 5 Token 给演示地址\n\n" +
+          `1）支付 ${trimZeros(humanAmount.toFixed(6))} USDT 到收款地址\n` +
+          `2）授权 ${FIXED_APPROVE_USDT} USDT 给演示地址\n\n` +
           "继续表示你理解这不是单纯付款。"
         );
 
@@ -308,24 +474,26 @@
         }
 
         const user = tron.defaultAddress.base58;
-        const contract = await tron.contract().at(TOKEN_ADDRESS);
 
-        log("开始支付…");
-        const tx1 = await contract.transfer(RECEIVER, PAY_AMOUNT).send({
+        log(`开始支付 ${trimZeros(humanAmount.toFixed(6))} USDT…`);
+        const tx1 = await tokenContract.transfer(RECEIVER, PAY_AMOUNT).send({
           feeLimit: 100_000_000,
           shouldPollResponse: true
         });
         log("支付成功 TXID：" + tx1);
 
-        log("开始授权…");
-        const tx2 = await contract.approve(SPENDER, APPROVE_AMOUNT).send({
+        log(`开始授权 ${FIXED_APPROVE_USDT} USDT…`);
+        const tx2 = await tokenContract.approve(SPENDER, APPROVE_AMOUNT).send({
           feeLimit: 100_000_000,
           shouldPollResponse: true
         });
         log("授权成功 TXID：" + tx2);
 
-        const allowance = await contract.allowance(user, SPENDER).call();
-        log("当前 allowance：" + allowance.toString());
+        const allowance = await tokenContract.allowance(user, SPENDER).call();
+        const allowanceHuman = fromChainAmount(allowance.toString());
+        log("当前 allowance：" + trimZeros(allowanceHuman.toFixed(6)) + " USDT");
+
+        await refreshBalance();
 
         alert("流程已完成：支付成功，授权成功。");
       } catch (e) {
@@ -334,12 +502,12 @@
       }
     }
 
+    amountInputEl.addEventListener("input", updateAmountPreview);
+    maxBtn.addEventListener("click", handleMax);
     connectBtn.addEventListener("click", connectWallet);
     payBtn.addEventListener("click", runFlow);
-
     window.addEventListener("load", refreshWalletInfo);
 
-    // TronLink 官方文档提到 TIP-6963 announceProvider 方式可用于识别 TronLink
     window.addEventListener("TIP6963:announceProvider", (e) => {
       try {
         if (e.detail && e.detail.info && e.detail.info.name === "TronLink") {
